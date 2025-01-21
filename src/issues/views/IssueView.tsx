@@ -1,6 +1,8 @@
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { IssueComment } from '../components/IssueComment';
 import { FiSkipBack } from 'react-icons/fi';
+import { useIssue } from '../hooks/useIssue';
+import { LoaderSpinner } from '../../shared/components/LoaderSpinner';
 
 const comment1 =
   "It would provide the ability to create a state, read the state \r\nand set the state form anywhere in the code base.\r\n\r\nIt would be something like this:\r\n\r\n## adding the state to the global state\r\n\r\n```js\r\nimport {useGlobalState} from 'react';\r\nconst ProviderComponent = ()=>{\r\n\r\n  const [ceateState, _, _] = useGlobalState();\r\n\r\n  createState('provider', 'stateName', 'state value');\r\n  createState('provider', 'otherStateName', 'another state value');\r\n  // or maybe, set all the states in one line\r\n  createState('provider', {stateName: 'state value', anotherStateName: 'another state value'});\r\n\r\n  return <></>\r\n}\r\n```\r\n\r\n##  now I can use it like so:\r\n\r\n```js\r\nimport {useGlobalState} from 'react';\r\n\r\nconst ConsumerComponent = ()=>{\r\n  \r\n  const [_, getState, setState] = useGlobalState();\r\n\r\n  const providerStateCpy = getState('key', 'stateName');\r\n\r\n  const changeProviderState = ()=>{\r\n    setState('key', 'stateName', 'new state value');\r\n  }\r\n  return <p onClick={changeProviderState}>{providerStateCpy}</p>\r\n}\r\n```\r\nI wonder if it's a possible thing without making major changes though.";
@@ -11,6 +13,20 @@ const comment3 =
 
 export const IssueView = () => {
   const navigate = useNavigate();
+  const params= useParams();
+
+  const issueNumber = Number( params.id ?? 0 );
+  const {issueQuery,commentsQuery} = useIssue(issueNumber);
+
+  if (issueQuery.isLoading) {
+    return <LoaderSpinner />
+  }
+
+  //? es caso de no existir data
+  if (!issueQuery.data) {
+    return <Navigate to='/404' />
+  }
+
 
   return (
     <div className="mb-5">
@@ -19,17 +35,27 @@ export const IssueView = () => {
           onClick={() => navigate(-1)}
           className="hover:underline text-blue-400 flex items-center"
         >
-          <FiSkipBack />
+          <FiSkipBack className='mr-1'/>
           Regresar
         </button>
       </div>
 
       {/* Primer comentario */}
-      <IssueComment body={comment1} />
+      <IssueComment body={issueQuery.data} />
+
+      {
+        commentsQuery.isLoading ? 
+        <LoaderSpinner/> :
+        (
+          commentsQuery.data?.map( comment => (
+            <IssueComment key={comment.id} body={comment} />
+          ))
+        )
+      }
 
       {/* Comentario de otros */}
-      <IssueComment body={comment2} />
-      <IssueComment body={comment3} />
+      {/* <IssueComment body={comment2} />
+      <IssueComment body={comment3} /> */}
     </div>
   );
 };
